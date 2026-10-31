@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Tap to Trade</title>
+  <style>
+    :root {
+      --bg1: #050816;
+      --bg2: #0b1026;
+      --panel: rgba(11, 18, 40, 0.88);
+      --line: rgba(118, 150, 255, 0.22);
+      --text: #eaf2ff;
+      --muted: #9ab0da;
+      --green: #2effb8;
+      --red: #ff5378;
+      --yellow: #ffd166;
+      --blue: #64b5ff;
+      --glow: 0 0 18px rgba(100, 181, 255, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(71, 102, 255, 0.18), transparent 35%),
+        radial-gradient(circle at bottom, rgba(46, 255, 184, 0.08), transparent 30%),
+        linear-gradient(180deg, var(--bg2), var(--bg1));
+      color: var(--text);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+    }
+
+    .phone {
+      width: min(420px, 100%);
+      height: min(860px, 100%);
+      display: grid;
+      grid-template-rows: auto auto 1fr auto auto;
+      gap: 10px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: var(--glow);
+      backdrop-filter: blur(8px);
+    }
+
+    .topbar {
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand .title {
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+
+    .brand .subtitle {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .timer {
+      min-width: 82px;
+      text-align: center;
+      padding: 10px 12px;
+      border-radius: 16px;
+      font-weight: 800;
+      font-size: 1.1rem;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .eventbar {
+      padding: 12px 16px;
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-weight: 700;
+      color: var(--yellow);
+      letter-spacing: 0.03em;
+    }
+
+    .chart-wrap {
+      position: relative;
+      padding: 12px;
+      overflow: hidden;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+    }
+
+    .price-badge {
+      position: absolute;
+      top: 24px;
+      left: 24px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: rgba(5, 12, 30, 0.82);
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow: 0 0 18px rgba(0,0,0,0.24);
+    }
+
+    .price-badge .coin {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+
+    .price-badge .price {
+      font-size: 1.4rem;
+      font-weight: 800;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      padding: 10px;
+    }
+
+    .stat {
+      padding: 12px 8px;
+      text-align: center;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .value {
+      font-size: 1rem;
+      font-weight: 800;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    button {
+      appearance: none;
+      border: none;
+      border-radius: 24px;
+      padding: 18px 14px;
+      font-size: 1.15rem;
+      font-weight: 900;
+      color: white;
+      cursor: pointer;
+      min-height: 76px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      transition: transform 0.08s ease, filter 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    button:active { transform: scale(0.98); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .buy {
+      background: linear-gradient(180deg, #34ffbf, #12b97f);
+      color: #04160f;
+    }
+
+    .sell {
+      background: linear-gradient(180deg, #ff6f92, #cf2c56);
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .small {
+      padding: 14px 16px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #7ab6ff, #457cff);
+    }
+
+    .hint {
+      padding: 12px 14px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.35;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 7, 20, 0.78);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 50;
+    }
+
+    .modal {
+      width: min(400px, 100%);
+      padding: 24px;
+      border-radius: 26px;
+      background: linear-gradient(180deg, rgba(11,18,40,0.98), rgba(8,12,28,0.98));
+      border: 1px solid rgba(118,150,255,0.22);
+      text-align: center;
+      box-shadow: 0 0 40px rgba(81, 118, 255, 0.25);
+    }
+
+    .modal h1 {
+      margin: 0 0 8px;
+      font-size: 1.8rem;
+    }
+
+    .modal p {
+      color: var(--muted);
+      line-height: 1.5;
+      margin: 0 0 12px;
+    }
+
+    .final-score {
+      font-size: 2rem;
+      font-weight: 900;
+      margin: 10px 0 18px;
+    }
+
+    .hidden { display: none; }
+
+    .flash-up { color: var(--green); }
+    .flash-down { color: var(--red); }
+
+    @media (max-height: 740px) {
+      .phone { gap: 8px; }
+      .topbar { padding: 12px; }
+      button { min-height: 66px; padding: 14px 12px; }
+      .stats { gap: 6px; }
+      .stat { padding: 10px 6px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="phone">
+      <div class="panel topbar">
+        <div class="brand">
+          <div class="title">TAP TO TRADE</div>
+          <div class="subtitle">Arcade crypto timing challenge</div>
+        </div>
+        <div class="timer" id="timer">60s</div>
+      </div>
+
+      <div class="panel eventbar" id="eventBar">Tap BUY low. Tap SELL high. Chase the pump.</div>
+
+      <div class="panel chart-wrap">
+        <canvas id="chart"></canvas>
+        <div class="price-badge">
+          <div class="coin">NEON COIN</div>
+          <div class="price" id="priceLabel">$100.00</div>
+        </div>
+      </div>
+
+      <div class="panel stats">
+        <div class="stat">
+          <div class="label">Cash</div>
+          <div class="value" id="cashLabel">$1000</div>
+        </div>
+        <div class="stat">
+          <div class="label">Coin</div>
+          <div class="value" id="coinLabel">0.000</div>
+        </div>
+        <div class="stat">
+          <div class="label">Value</div>
+          <div class="value" id="valueLabel">$1000</div>
+        </div>
+        <div class="stat">
+          <div class="label">Combo</div>
+          <div class="value" id="comboLabel">x0</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="buy" id="buyBtn">BUY</button>
+        <button class="sell" id="sellBtn">SELL</button>
+      </div>
+
+      <div class="meta">
+        <div class="panel hint" id="hintBox">
+          Buy uses all your cash. Sell dumps your full bag. One position at a time. Random market events can suddenly pump or crash the price.
+        </div>
+        <button class="small" id="restartBtn">RESTART</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h1>TAP TO TRADE</h1>
+      <p>Ride the chart for 60 seconds. Buy low, sell high, and build the biggest ending account value you can.</p>
+      <div class="final-score" id="finalScore">Start with $1,000</div>
+      <button class="small" id="startBtn" style="width:100%; min-height:64px; color:white;">START ROUND</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('chart');
+    const ctx = canvas.getContext('2d');
+
+    const priceLabel = document.getElementById('priceLabel');
+    const cashLabel = document.getElementById('cashLabel');
+    const coinLabel = document.getElementById('coinLabel');
+    const valueLabel = document.getElementById('valueLabel');
+    const comboLabel = document.getElementById('comboLabel');
+    const timerLabel = document.getElementById('timer');
+    const eventBar = document.getElementById('eventBar');
+    const hintBox = document.getElementById('hintBox');
+    const overlay = document.getElementById('overlay');
+    const finalScore = document.getElementById('finalScore');
+
+    const buyBtn = document.getElementById('buyBtn');
+    const sellBtn = document.getElementById('sellBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const startBtn = document.getElementById('startBtn');
+
+    let width = 0;
+    let height = 0;
+
+    let prices = [];
+    let running = false;
+    let lastTime = 0;
+    let tickAccumulator = 0;
+    let eventCooldown = 0;
+    let roundTime = 60;
+    let timeLeft = 60;
+
+    let currentPrice = 100;
+    let drift = 0;
+    let volatility = 1.3;
+    let shockBias = 0;
+
+    let cash = 1000;
+    let coin = 0;
+    let lastBuyPrice = 0;
+    let combo = 0;
+
+    const TICK_MS = 110;
+    const MAX_POINTS = 80;
+
+    const events = [
+      { name: 'WHALE BUY', effect: 6, vol: 2.6, text: 'WHALE BUY! Momentum surges upward.' },
+      { name: 'WHALE DUMP', effect: -7, vol: 2.8, text: 'WHALE DUMP! The market gets slammed.' },
+      { name: 'FOMO WAVE', effect: 4, vol: 2.1, text: 'FOMO WAVE! Traders pile in.' },
+      { name: 'PANIC SELL', effect: -4.5, vol: 2.2, text: 'PANIC SELL! Fear spreads fast.' },
+      { name: 'SIDEWAYS CHOP', effect: 0, vol: 0.6, text: 'SIDEWAYS CHOP! Harder to time.' },
+      { name: 'MOON SIGNAL', effect: 8, vol: 3.0, text: 'MOON SIGNAL! Huge pump incoming.' },
+      { name: 'RUG TREMOR', effect: -8, vol: 3.0, text: 'RUG TREMOR! Sudden collapse risk.' },
+    ];
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      width = Math.floor(rect.width * dpr);
+      height = Math.floor(rect.height * dpr);
+      canvas.width = width;
+      canvas.height = height;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+      width = rect.width;
+      height = rect.height;
+      draw();
+    }
+
+    function resetGame() {
+      prices = [];
+      currentPrice = 100;
+      drift = 0;
+      volatility = 1.3;
+      shockBias = 0;
+      cash = 1000;
+      coin = 0;
+      lastBuyPrice = 0;
+      combo = 0;
+      timeLeft = roundTime;
+      eventCooldown = 1.8;
+      eventBar.textContent = 'Tap BUY low. Tap SELL high. Chase the pump.';
+      eventBar.className = 'panel eventbar';
+      for (let i = 0; i < MAX_POINTS; i++) prices.push(currentPrice);
+      updateUI();
+      draw();
+    }
+
+    function randomBetween(a, b) {
+      return a + Math.random() * (b - a);
+    }
+
+    function triggerRandomEvent() {
+      const e = events[Math.floor(Math.random() * events.length)];
+      shockBias = e.effect;
+      volatility = e.vol;
+      eventBar.textContent = e.text;
+      eventBar.className = 'panel eventbar ' + (e.effect >= 0 ? 'flash-up' : 'flash-down');
+      setTimeout(() => {
+        if (running) {
+          eventBar.className = 'panel eventbar';
+        }
+      }, 900);
+    }
+
+    function updateMarket() {
+      if (eventCooldown > 0) eventCooldown -= TICK_MS / 1000;
+      if (eventCooldown <= 0 && Math.random() < 0.08) {
+        triggerRandomEvent();
+        eventCooldown = randomBetween(3.5, 7.5);
+      }
+
+      const noise = randomBetween(-1, 1) * volatility;
+      drift += randomBetween(-0.18, 0.18);
+      drift *= 0.94;
+      shockBias *= 0.9;
+
+      const delta = noise + drift + shockBias * 0.12;
+      currentPrice = Math.max(8, currentPrice + delta);
+
+      prices.push(currentPrice);
+      while (prices.length > MAX_POINTS) prices.shift();
+
+      volatility += (1.3 - volatility) * 0.08;
+    }
+
+    function formatMoney(n) {
+      return '$' + n.toFixed(2);
+    }
+
+    function portfolioValue() {
+      return cash + coin * currentPrice;
+    }
+
+    function updateUI() {
+      priceLabel.textContent = formatMoney(currentPrice);
+      cashLabel.textContent = formatMoney(cash);
+      coinLabel.textContent = coin.toFixed(3);
+      valueLabel.textContent = formatMoney(portfolioValue());
+      comboLabel.textContent = 'x' + combo;
+      timerLabel.textContent = Math.max(0, Math.ceil(timeLeft)) + 's';
+      buyBtn.disabled = !running || cash <= 0.009;
+      sellBtn.disabled = !running || coin <= 0.000001;
+    }
+
+    function buyAll() {
+      if (!running || cash <= 0) return;
+      coin = cash / currentPrice;
+      cash = 0;
+      lastBuyPrice = currentPrice;
+      hintBox.textContent = 'Bought in at ' + formatMoney(lastBuyPrice) + '. Now wait for a better exit... or panic.';
+      updateUI();
+    }
+
+    function sellAll() {
+      if (!running || coin <= 0) return;
+      const proceeds = coin * currentPrice;
+      const profitable = currentPrice > lastBuyPrice;
+      cash = proceeds;
+      coin = 0;
+
+      if (profitable) {
+        combo += 1;
+        const bonus = 1 + Math.min(combo * 0.03, 0.15);
+        cash *= bonus;
+        hintBox.textContent = 'Profitable sell! Combo bonus applied: +' + Math.round((bonus - 1) * 100) + '%';
+      } else {
+        combo = 0;
+        hintBox.textContent = 'Ouch. Bad exit. Combo reset.';
+      }
+      updateUI();
+    }
+
+    function endRound() {
+      running = false;
+      finalScore.textContent = formatMoney(portfolioValue());
+      overlay.classList.remove('hidden');
+      startBtn.textContent = 'PLAY AGAIN';
+      eventBar.textContent = 'Round over. Ready for another run?';
+      updateUI();
+    }
+
+    function drawGrid() {
+      const lines = 5;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(140,160,220,0.12)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i < lines; i++) {
+        const y = (height / lines) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      for (let i = 1; i < 4; i++) {
+        const x = (width / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawChartLine() {
+      const min = Math.min(...prices);
+      const max = Math.max(...prices);
+      const range = Math.max(1, max - min);
+
+      const pts = prices.map((p, i) => ({
+        x: (i / (prices.length - 1)) * width,
+        y: height - ((p - min) / range) * (height * 0.78) - height * 0.1
+      }));
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, height);
+      gradient.addColorStop(0, 'rgba(46,255,184,0.28)');
+      gradient.addColorStop(1, 'rgba(46,255,184,0.01)');
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) {
+        const prev = pts[i - 1];
+        const curr = pts[i];
+        const cx = (prev.x + curr.x) / 2;
+        ctx.quadraticCurveTo(prev.x, prev.y, cx, (prev.y + curr.y) / 2);
+      }
+      ctx.lineTo(width, height);
+      ctx.lineTo(0, height);
+      ctx.closePath();
+      ctx.fillStyle = gradient;
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) {
+        const prev = pts[i - 1];
+        const curr = pts[i];
+        const cx = (prev.x + curr.x) / 2;
+        ctx.quadraticCurveTo(prev.x, prev.y, cx, (prev.y + curr.y) / 2);
+      }
+      ctx.strokeStyle = 'rgba(46,255,184,1)';
+      ctx.lineWidth = 3;
+      ctx.shadowBlur = 18;
+      ctx.shadowColor = 'rgba(46,255,184,0.8)';
+      ctx.stroke();
+      ctx.restore();
+
+      const last = pts[pts.length - 1];
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(last.x, last.y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = 'rgba(46,255,184,1)';
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function draw() {
+      if (!width || !height) return;
+      ctx.clearRect(0, 0, width, height);
+      drawGrid();
+      if (prices.length > 1) drawChartLine();
+    }
+
+    function loop(ts) {
+      if (!lastTime) lastTime = ts;
+      const delta = ts - lastTime;
+      lastTime = ts;
+
+      if (running) {
+        tickAccumulator += delta;
+        timeLeft -= delta / 1000;
+
+        while (tickAccumulator >= TICK_MS) {
+          updateMarket();
+          tickAccumulator -= TICK_MS;
+        }
+
+        if (timeLeft <= 0) {
+          timeLeft = 0;
+          endRound();
+        }
+      }
+
+      updateUI();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    buyBtn.addEventListener('click', buyAll);
+    sellBtn.addEventListener('click', sellAll);
+    restartBtn.addEventListener('click', () => {
+      resetGame();
+      running = true;
+      overlay.classList.add('hidden');
+    });
+    startBtn.addEventListener('click', () => {
+      resetGame();
+      running = true;
+      overlay.classList.add('hidden');
+    });
+
+    window.addEventListener('resize', resizeCanvas);
+
+    resetGame();
+    resizeCanvas();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
